@@ -69,6 +69,7 @@ class Api
         $path = explode('/', rtrim($this->path, '/'));
         $pattern = explode('/', rtrim($pattern, '/'));
 
+
         $this->_vars = [];
 
         while ($path || $pattern) {
@@ -190,6 +191,8 @@ class Api
      *    - if fieldname is empty, then use model->title_field
      *    - if fieldname is not empty, then use it
      *
+     * Adds Condition to limit Dataset to the single record loaded
+     *
      * @param \atk\data\Model $m
      * @param string|array    $value
      *
@@ -200,11 +203,12 @@ class Api
         // value is not ID
         if (is_array($value)) {
             $field = empty($value[0]) ? $m->title_field : $value[0];
-
+            $m->addCondition($field, $value[1]);
             return $m->loadBy($field, $value[1]);
         }
 
         // value is ID
+        $m->addCondition($m->id_field, $value);
         return $m->load($value);
     }
 
@@ -400,7 +404,6 @@ class Api
             $f = function () use ($model) {
                 $args = func_get_args();
                 $id = array_pop($args); // pop last element of args array, it's :id
-
                 if (is_callable($model)) {
                     $model = $this->call($model, $args);
                 }
@@ -409,7 +412,8 @@ class Api
                 $model->onlyFields($this->getAllowedFields($model, 'read'));
 
                 // single record should also go through exportModel for API-specific changes
-                $model->addCondition($model->id_field, $id);
+                //throws exception if record was not found
+                $this->loadModelByValue($model, $id);
                 return $model;
             };
             $this->get($pattern.'/:id', $f);
