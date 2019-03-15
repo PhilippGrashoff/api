@@ -408,8 +408,9 @@ class Api
                 // limit fields
                 $model->onlyFields($this->getAllowedFields($model, 'read'));
 
-                // load model and get field values
-                return $this->loadModelByValue($model, $id)->get();
+                // single record should also go through exportModel for API-specific changes
+                $model->addCondition($model->id_field, $id);
+                return $model;
             };
             $this->get($pattern.'/:id', $f);
         }
